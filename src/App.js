@@ -220,9 +220,32 @@ function App() {
             )}
 
             {/* File Upload */}
-            <Box marginY={2}>
-                <input type="file" multiple onChange={handleFileChange} accept=".pdf,.docx,.xlsx" />
+            <Box 
+                marginY={2}
+                sx={{
+                    border: '2px dashed grey',
+                    borderRadius: '10px',
+                    padding: '20px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    backgroundColor: '#f5f5f5',
+                    '&:hover': {
+                        backgroundColor: '#e0e0e0',
+                    }
+                }}
+                onClick={() => document.getElementById('fileUpload').click()} // Trigger file input on box click
+            >
+                <Typography variant="h6">Click or Drag & Drop Files Here</Typography>
+                <input 
+                    type="file" 
+                    multiple 
+                    onChange={handleFileChange} 
+                    accept=".pdf,.docx,.xlsx" 
+                    style={{ display: 'none' }} // Hide default input appearance
+                    id="fileUpload"  // ID to trigger file input
+                />
             </Box>
+
 
             {/* Toggle Button to Show/Hide Document Content */}
             {documentContents.length > 0 && (
