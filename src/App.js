@@ -16,6 +16,8 @@ import {
     FormControlLabel
 } from '@mui/material';
 
+const API_BASE_URL = "https://docai-backend.onrender.com";  // Render backend URL
+
 function App() {
     // const [files, setFiles] = useState([]); // Handle multiple file uploads
     const [documentContents, setDocumentContents] = useState([]); // State for multiple extracted document contents
