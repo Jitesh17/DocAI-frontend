@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import {
     Button,
@@ -16,10 +16,12 @@ import {
     FormControlLabel
 } from '@mui/material';
 
-const API_BASE_URL = "https://docai-backend.onrender.com";  // Render backend URL
+// Add both local and hosted backend URLs
+const LOCAL_API_BASE_URL = "http://localhost:5000";  // Local backend URL
+const HOSTED_API_BASE_URL = "https://docai-backend.onrender.com";  // Render backend URL
 
 function App() {
-    // const [files, setFiles] = useState([]); // Handle multiple file uploads
+    const [apiUrl, setApiUrl] = useState(HOSTED_API_BASE_URL);  // State to switch between local and hosted API
     const [documentContents, setDocumentContents] = useState([]); // State for multiple extracted document contents
     const [prompt, setPrompt] = useState('');
     const [api, setApi] = useState('openai');
@@ -33,25 +35,23 @@ function App() {
     const [openAiApiKey, setOpenAiApiKey] = useState('');
     const [claudeApiKey, setClaudeApiKey] = useState('');
 
-    // Fetch all uploaded documents on load
-    const fetchDocuments = async () => {
+    const fetchDocuments = useCallback(async () => {
         try {
-            const result = await axios.get('http://localhost:5000/api/uploaded-documents');
+            const result = await axios.get(`${apiUrl}/api/uploaded-documents`);
             setUploadedDocuments(result.data.documents);
         } catch (error) {
             console.error('Error fetching documents', error);
         }
-    };
-
+    }, [apiUrl]);
+    
     useEffect(() => {
         fetchDocuments();
-    }, []);
+    }, [fetchDocuments]); 
 
     // Handle document selection from dropdown
     const handleDocumentSelection = (e) => {
         setSelectedDocumentIds([...e.target.selectedOptions].map(option => option.value));
     };
-
 
     // Handle document deletion
     const handleDeleteDocuments = async () => {
@@ -61,7 +61,7 @@ function App() {
         }
 
         try {
-            const result = await axios.delete('http://localhost:5000/api/delete-documents', {
+            const result = await axios.delete(`${apiUrl}/api/delete-documents`, {
                 data: { documentIds: selectedDocumentIds }  // Send selected document IDs in the request body
             });
 
@@ -78,7 +78,6 @@ function App() {
     // Handle file change for multiple files
     const handleFileChange = async (e) => {
         const uploadedFiles = e.target.files;
-        // setFiles(uploadedFiles);
         const formData = new FormData();
         for (let i = 0; i < uploadedFiles.length; i++) {
             formData.append('files', uploadedFiles[i]); // Ensure the input name is 'files'
@@ -89,13 +88,13 @@ function App() {
             setError('');
 
             // Send the files to the backend for document extraction
-            const result = await axios.post('http://localhost:5000/api/read-document', formData, {
+            const result = await axios.post(`${apiUrl}/api/read-document`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
             if (result.data.contents) {
                 setDocumentContents(result.data.contents); 
-                fetchDocuments(); 
+                fetchDocuments();  // Update the document list after upload
             } else {
                 setDocumentContents(['No content extracted.']);
             }
@@ -126,7 +125,7 @@ function App() {
 
         try {
             // Send the prompt and extracted content to the backend for AI processing
-            const result = await axios.post('http://localhost:5000/api/send-to-ai', requestData);
+            const result = await axios.post(`${apiUrl}/api/send-to-ai`, requestData);
             setResponse(result.data.data.choices[0].text);
         } catch (error) {
             setError('Error processing AI request. Please try again.');
@@ -146,9 +145,28 @@ function App() {
         setUseFrontendApiKey((prev) => !prev);
     };
 
+    // Toggle API URL between local and hosted
+    const handleApiUrlToggle = () => {
+        setApiUrl(prevUrl => prevUrl === LOCAL_API_BASE_URL ? HOSTED_API_BASE_URL : LOCAL_API_BASE_URL);
+    };
+
     return (
         <Container maxWidth="md">
             <Typography variant="h4" gutterBottom>AI Document Processor</Typography>
+
+            {/* Toggle Backend URL */}
+            <Box marginY={2}>
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={apiUrl === HOSTED_API_BASE_URL}
+                            onChange={handleApiUrlToggle}
+                            color="primary"
+                        />
+                    }
+                    label={apiUrl === HOSTED_API_BASE_URL ? "Using Hosted Backend" : "Using Local Backend"}
+                />
+            </Box>
 
             {/* API Selection */}
             <FormControl fullWidth margin="normal" style={{ paddingTop: '10px' }}>
@@ -159,6 +177,7 @@ function App() {
                     <MenuItem value="custom">Custom Model</MenuItem>
                 </Select>
             </FormControl>
+
 
             {/* Toggle Button to Use API Keys from Frontend */}
             <Box marginY={2}>
