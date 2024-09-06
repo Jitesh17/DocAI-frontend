@@ -27,6 +27,9 @@ function App() {
     const [error, setError] = useState('');
     const [uploadedDocuments, setUploadedDocuments] = useState([]); // List of uploaded documents
     const [selectedDocumentIds, setSelectedDocumentIds] = useState([]); // IDs of selected documents
+    const [useFrontendApiKey, setUseFrontendApiKey] = useState(false); // Toggle to use frontend API key
+    const [openAiApiKey, setOpenAiApiKey] = useState('');
+    const [claudeApiKey, setClaudeApiKey] = useState('');
 
     // Fetch all uploaded documents on load
     const fetchDocuments = async () => {
@@ -113,7 +116,10 @@ function App() {
             prompt: prompt,
             api: api,
             selectedDocumentIds: selectedDocumentIds,  // Previously selected document IDs
-            documentContents: documentContents.join('\n\n')  // Concatenated newly uploaded documents
+            documentContents: documentContents.join('\n\n'), // Concatenated newly uploaded documents
+            useFrontendApiKey: useFrontendApiKey,
+            openAiApiKey: openAiApiKey,
+            claudeApiKey: claudeApiKey
         };
 
         try {
@@ -133,6 +139,11 @@ function App() {
         setShowDocumentContent((prev) => !prev);
     };
 
+    // Toggle API key input source
+    const handleApiKeyToggle = () => {
+        setUseFrontendApiKey((prev) => !prev);
+    };
+
     return (
         <Container maxWidth="md">
             <Typography variant="h4" gutterBottom>AI Document Processor</Typography>
@@ -146,6 +157,46 @@ function App() {
                     <MenuItem value="custom">Custom Model</MenuItem>
                 </Select>
             </FormControl>
+
+            {/* Toggle Button to Use API Keys from Frontend */}
+            <Box marginY={2}>
+                <FormControlLabel
+                    control={
+                        <Switch
+                            checked={useFrontendApiKey}
+                            onChange={handleApiKeyToggle}
+                            color="primary"
+                        />
+                    }
+                    label="Use my API Key"
+                />
+            </Box>
+
+            {/* Conditionally Show API Key Inputs */}
+            {useFrontendApiKey && (
+                <>
+                    {api === 'openai' && (
+                        <TextField
+                            label="OpenAI API Key"
+                            fullWidth
+                            value={openAiApiKey}
+                            onChange={(e) => setOpenAiApiKey(e.target.value)}
+                            margin="normal"
+                            variant="outlined"
+                        />
+                    )}
+                    {api === 'claude' && (
+                        <TextField
+                            label="Claude API Key"
+                            fullWidth
+                            value={claudeApiKey}
+                            onChange={(e) => setClaudeApiKey(e.target.value)}
+                            margin="normal"
+                            variant="outlined"
+                        />
+                    )}
+                </>
+            )}
 
             {/* File Upload */}
             <Box marginY={2}>
@@ -181,7 +232,7 @@ function App() {
             )}
 
             {/* Uploaded Document Dropdown */}
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" style={{ paddingTop: '20px' }}>
                 <InputLabel>Select Uploaded Documents</InputLabel>
                 <Select multiple native onChange={handleDocumentSelection}>
                     {uploadedDocuments.map(doc => (
