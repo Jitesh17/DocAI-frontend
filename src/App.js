@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
     Button,
@@ -17,47 +17,89 @@ import {
 } from '@mui/material';
 
 function App() {
+    // const [files, setFiles] = useState([]); // Handle multiple file uploads
+    const [documentContents, setDocumentContents] = useState([]); // State for multiple extracted document contents
     const [prompt, setPrompt] = useState('');
-    const [api, setApi] = useState('openai'); // Re-added API state handling
+    const [api, setApi] = useState('openai');
     const [response, setResponse] = useState('');
-    const [documentContent, setDocumentContent] = useState(''); // State for extracted document content
-    const [showDocumentContent, setShowDocumentContent] = useState(false); // State for toggling content view
+    const [showDocumentContent, setShowDocumentContent] = useState(false); // For toggling document view
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [uploadedDocuments, setUploadedDocuments] = useState([]); // List of uploaded documents
+    const [selectedDocumentIds, setSelectedDocumentIds] = useState([]); // IDs of selected documents
 
-    // Handle file change and extract content when a file is uploaded
-    const handleFileChange = async (e) => {
-        const uploadedFile = e.target.files[0];  // Removed the file state
-        if (uploadedFile) {
-            const formData = new FormData();
-            formData.append('file', uploadedFile);
-
-            try {
-                setLoading(true);
-                setError('');
-
-                // Send the file to the backend for document extraction
-                const result = await axios.post('http://localhost:5000/api/read-document', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
-
-                if (result.data.content) {
-                    setDocumentContent(result.data.content); // Set content for display
-                } else {
-                    setDocumentContent('No content extracted.');
-                }
-            } catch (error) {
-                setError('Error extracting document content. Please try again.');
-                console.error('Error extracting document content', error);
-            } finally {
-                setLoading(false);
-            }
+    // Fetch all uploaded documents on load
+    const fetchDocuments = async () => {
+        try {
+            const result = await axios.get('http://localhost:5000/api/uploaded-documents');
+            setUploadedDocuments(result.data.documents);
+        } catch (error) {
+            console.error('Error fetching documents', error);
         }
     };
 
-    // Handle API selection change
-    const handleApiChange = (e) => {
-        setApi(e.target.value);
+    useEffect(() => {
+        fetchDocuments();
+    }, []);
+
+    // Handle document selection from dropdown
+    const handleDocumentSelection = (e) => {
+        setSelectedDocumentIds([...e.target.selectedOptions].map(option => option.value));
+    };
+
+
+    // Handle document deletion
+    const handleDeleteDocuments = async () => {
+        if (selectedDocumentIds.length === 0) {
+            alert('Please select at least one document to delete.');
+            return;
+        }
+
+        try {
+            const result = await axios.delete('http://localhost:5000/api/delete-documents', {
+                data: { documentIds: selectedDocumentIds }  // Send selected document IDs in the request body
+            });
+
+            if (result.data.success) {
+                // Remove the deleted documents from the local state
+                setUploadedDocuments(prevDocs => prevDocs.filter(doc => !selectedDocumentIds.includes(doc._id)));
+                setSelectedDocumentIds([]); // Clear the selected documents
+            }
+        } catch (error) {
+            console.error('Error deleting documents', error);
+        }
+    };
+
+    // Handle file change for multiple files
+    const handleFileChange = async (e) => {
+        const uploadedFiles = e.target.files;
+        // setFiles(uploadedFiles);
+        const formData = new FormData();
+        for (let i = 0; i < uploadedFiles.length; i++) {
+            formData.append('files', uploadedFiles[i]); // Ensure the input name is 'files'
+        }
+
+        try {
+            setLoading(true);
+            setError('');
+
+            // Send the files to the backend for document extraction
+            const result = await axios.post('http://localhost:5000/api/read-document', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            if (result.data.contents) {
+                setDocumentContents(result.data.contents); 
+                fetchDocuments(); 
+            } else {
+                setDocumentContents(['No content extracted.']);
+            }
+        } catch (error) {
+            setError('Error extracting document content. Please try again.');
+            console.error('Error extracting document content', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Handle form submission (Send to AI)
@@ -68,9 +110,10 @@ function App() {
         setResponse('');
 
         const requestData = {
-            prompt: prompt,  // Send the prompt
-            api: api,  // Selected AI API
-            documentContent: documentContent  // Already extracted document content
+            prompt: prompt,
+            api: api,
+            selectedDocumentIds: selectedDocumentIds,  // Previously selected document IDs
+            documentContents: documentContents.join('\n\n')  // Concatenated newly uploaded documents
         };
 
         try {
@@ -95,9 +138,9 @@ function App() {
             <Typography variant="h4" gutterBottom>AI Document Processor</Typography>
 
             {/* API Selection */}
-            <FormControl fullWidth margin="normal" style={{paddingTop: '10px'}}>
+            <FormControl fullWidth margin="normal" style={{ paddingTop: '10px' }}>
                 <InputLabel>Select AI API</InputLabel>
-                <Select value={api} onChange={handleApiChange}>
+                <Select value={api} onChange={(e) => setApi(e.target.value)}>
                     <MenuItem value="openai">OpenAI</MenuItem>
                     <MenuItem value="claude">Claude AI</MenuItem>
                     <MenuItem value="custom">Custom Model</MenuItem>
@@ -106,11 +149,11 @@ function App() {
 
             {/* File Upload */}
             <Box marginY={2}>
-                <input type="file" onChange={handleFileChange} accept=".pdf,.docx,.xlsx" />
+                <input type="file" multiple onChange={handleFileChange} accept=".pdf,.docx,.xlsx" />
             </Box>
 
             {/* Toggle Button to Show/Hide Document Content */}
-            {documentContent && (
+            {documentContents.length > 0 && (
                 <Box marginY={2}>
                     <FormControlLabel
                         control={
@@ -126,14 +169,35 @@ function App() {
             )}
 
             {/* Conditionally Render Document Content */}
-            {showDocumentContent && documentContent && (
+            {showDocumentContent && documentContents.length > 0 && (
                 <Box marginY={2}>
                     <Typography variant="h6">Extracted Document Content:</Typography>
-                    <Box padding={2} border={1} borderColor="grey.300" borderRadius={4} bgcolor="grey.100">
-                        <Typography variant="body1">{documentContent}</Typography>
-                    </Box>
+                    {documentContents.map((content, idx) => (
+                        <Box key={idx} padding={2} border={1} borderColor="grey.300" borderRadius={4} bgcolor="grey.100">
+                            <Typography variant="body1">{content}</Typography>
+                        </Box>
+                    ))}
                 </Box>
             )}
+
+            {/* Uploaded Document Dropdown */}
+            <FormControl fullWidth margin="normal">
+                <InputLabel>Select Uploaded Documents</InputLabel>
+                <Select multiple native onChange={handleDocumentSelection}>
+                    {uploadedDocuments.map(doc => (
+                        <option key={doc._id} value={doc._id}>
+                            {doc.documentName}
+                        </option>
+                    ))}
+                </Select>
+            </FormControl>
+
+            {/* Delete Documents Button */}
+            <Box marginY={2}>
+                <Button variant="contained" color="secondary" onClick={handleDeleteDocuments}>
+                    Delete Selected Documents
+                </Button>
+            </Box>
 
             {/* Prompt Input */}
             <TextField
@@ -149,7 +213,7 @@ function App() {
 
             {/* Send to AI Button */}
             <Box marginY={2}>
-                <Button type="submit" variant="contained" color="primary" onClick={handleSubmit} disabled={loading || !documentContent}>
+                <Button type="submit" variant="contained" color="primary" onClick={handleSubmit} disabled={loading || (!documentContents.length && selectedDocumentIds.length === 0)} >
                     {loading ? <CircularProgress size={24} /> : 'Send to AI'}
                 </Button>
             </Box>
