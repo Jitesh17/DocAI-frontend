@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, getIdToken } from 'firebase/auth'; // Import signUp method
+import { auth } from './firebase'; 
 import {
     Button,
     TextField,
@@ -16,44 +18,82 @@ import {
     FormControlLabel
 } from '@mui/material';
 
-// Add both local and hosted backend URLs
-const LOCAL_API_BASE_URL = "http://localhost:5000";  // Local backend URL
-const HOSTED_API_BASE_URL = "https://docai-backend.onrender.com";  // Render backend URL
+const LOCAL_API_BASE_URL = "http://localhost:5000";
+const HOSTED_API_BASE_URL = "https://docai-backend.onrender.com";
 
 function App() {
-    const [apiUrl, setApiUrl] = useState(HOSTED_API_BASE_URL);  // State to switch between local and hosted API
-    const [documentContents, setDocumentContents] = useState([]); // State for multiple extracted document contents
+    const [user, setUser] = useState(null);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [apiUrl, setApiUrl] = useState(HOSTED_API_BASE_URL);
+    const [documentContents, setDocumentContents] = useState([]);
     const [prompt, setPrompt] = useState('');
     const [api, setApi] = useState('openai');
     const [response, setResponse] = useState('');
-    const [showDocumentContent, setShowDocumentContent] = useState(false); // For toggling document view
+    const [showDocumentContent, setShowDocumentContent] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [uploadedDocuments, setUploadedDocuments] = useState([]); // List of uploaded documents
-    const [selectedDocumentIds, setSelectedDocumentIds] = useState([]); // IDs of selected documents
-    const [useFrontendApiKey, setUseFrontendApiKey] = useState(false); // Toggle to use frontend API key
+    const [uploadedDocuments, setUploadedDocuments] = useState([]);
+    const [selectedDocumentIds, setSelectedDocumentIds] = useState([]);
+    const [useFrontendApiKey, setUseFrontendApiKey] = useState(false);
     const [openAiApiKey, setOpenAiApiKey] = useState('');
     const [claudeApiKey, setClaudeApiKey] = useState('');
 
     const fetchDocuments = useCallback(async () => {
+        if (!user) return;
+
+        const token = await getIdToken(user); // Get the current user's token
+    
         try {
-            const result = await axios.get(`${apiUrl}/api/uploaded-documents`);
+            const result = await axios.get(`${apiUrl}/api/uploaded-documents`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
             setUploadedDocuments(result.data.documents);
         } catch (error) {
             console.error('Error fetching documents', error);
         }
-    }, [apiUrl]);
+    }, [apiUrl, user]);
     
     useEffect(() => {
         fetchDocuments();
-    }, [fetchDocuments]); 
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+        });
+        return () => unsubscribe();
+    }, [fetchDocuments]);
 
-    // Handle document selection from dropdown
     const handleDocumentSelection = (e) => {
         setSelectedDocumentIds([...e.target.selectedOptions].map(option => option.value));
     };
 
-    // Handle document deletion
+    const handleSignIn = async () => {
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            setError('Sign in failed. Please check your credentials.');
+        }
+    };
+
+    const handleSignUp = async () => {
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+            setError('');
+        } catch (error) {
+            setError('Sign up failed. Try again with a different email.');
+        }
+    };
+
+    const handleSignOut = async () => {
+        try {
+            await signOut(auth);
+            setUser(null);
+        } catch (error) {
+            setError('Sign out failed.');
+        }
+    };
+
     const handleDeleteDocuments = async () => {
         if (selectedDocumentIds.length === 0) {
             alert('Please select at least one document to delete.');
@@ -61,40 +101,49 @@ function App() {
         }
 
         try {
+            const token = await getIdToken(user); // Get the current user's token
+
             const result = await axios.delete(`${apiUrl}/api/delete-documents`, {
-                data: { documentIds: selectedDocumentIds }  // Send selected document IDs in the request body
+                data: { documentIds: selectedDocumentIds },
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
             });
 
             if (result.data.success) {
-                // Remove the deleted documents from the local state
                 setUploadedDocuments(prevDocs => prevDocs.filter(doc => !selectedDocumentIds.includes(doc._id)));
-                setSelectedDocumentIds([]); // Clear the selected documents
+                setSelectedDocumentIds([]);
             }
         } catch (error) {
             console.error('Error deleting documents', error);
         }
     };
 
-    // Handle file change for multiple files
     const handleFileChange = async (e) => {
+        if (!user) return;
+    
         const uploadedFiles = e.target.files;
         const formData = new FormData();
         for (let i = 0; i < uploadedFiles.length; i++) {
-            formData.append('files', uploadedFiles[i]); // Ensure the input name is 'files'
+            formData.append('files', uploadedFiles[i]);
         }
-
+    
         try {
             setLoading(true);
             setError('');
-
-            // Send the files to the backend for document extraction
+    
+            const token = await getIdToken(user); // Get the current user's token
+    
             const result = await axios.post(`${apiUrl}/api/read-document`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${token}`
+                }
             });
-
+    
             if (result.data.contents) {
-                setDocumentContents(result.data.contents); 
-                fetchDocuments();  // Update the document list after upload
+                setDocumentContents(result.data.contents);
+                fetchDocuments();
             } else {
                 setDocumentContents(['No content extracted.']);
             }
@@ -105,8 +154,8 @@ function App() {
             setLoading(false);
         }
     };
+    
 
-    // Handle form submission (Send to AI)
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -114,47 +163,72 @@ function App() {
         setResponse('');
 
         const requestData = {
-            prompt: prompt,
-            api: api,
-            selectedDocumentIds: selectedDocumentIds,  // Previously selected document IDs
-            documentContents: documentContents.join('\n\n'), // Concatenated newly uploaded documents
-            useFrontendApiKey: useFrontendApiKey,
-            openAiApiKey: openAiApiKey,
-            claudeApiKey: claudeApiKey
+            prompt,
+            api,
+            selectedDocumentIds,
+            documentContents: documentContents.join('\n\n'),
+            useFrontendApiKey,
+            openAiApiKey,
+            claudeApiKey
         };
 
         try {
-            // Send the prompt and extracted content to the backend for AI processing
             const result = await axios.post(`${apiUrl}/api/send-to-ai`, requestData);
             setResponse(result.data.data.choices[0].text);
         } catch (error) {
-            setError('Error processing AI request. Please try again.');
-            console.error('Error processing AI request', error);
+            setError('Error processing AI request.');
         } finally {
             setLoading(false);
         }
     };
 
-    // Toggle the display of document content
     const handleToggleChange = () => {
-        setShowDocumentContent((prev) => !prev);
+        setShowDocumentContent(prev => !prev);
     };
 
-    // Toggle API key input source
     const handleApiKeyToggle = () => {
-        setUseFrontendApiKey((prev) => !prev);
+        setUseFrontendApiKey(prev => !prev);
     };
 
-    // Toggle API URL between local and hosted
     const handleApiUrlToggle = () => {
         setApiUrl(prevUrl => prevUrl === LOCAL_API_BASE_URL ? HOSTED_API_BASE_URL : LOCAL_API_BASE_URL);
     };
 
+    if (!user) {
+        return (
+            <Container maxWidth="sm">
+                <Typography variant="h4" gutterBottom>Sign In to Access the App</Typography>
+                {error && <Alert severity="error">{error}</Alert>}
+                <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth margin="normal" />
+                <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth margin="normal" />
+                <Box marginY={2}>
+                    <Button onClick={handleSignIn} variant="contained" color="primary" style={{ marginRight: '10px' }}>Sign In</Button>
+                    <Button onClick={handleSignUp} variant="contained" color="secondary">Sign Up</Button>
+                </Box>
+            </Container>
+        );
+    }
+    
     return (
         <Container maxWidth="md">
             <Typography variant="h4" gutterBottom>AI Document Processor</Typography>
 
-            {/* Toggle Backend URL */}
+            {user ? (
+                <>
+                    <Typography>Signed in as: {user.email}</Typography>
+                    <Button onClick={handleSignOut} variant="contained" color="secondary">Sign Out</Button>
+                </>
+            ) : (
+                <>
+                    <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
+                    <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth />
+                    <Box marginY={2}>
+                        <Button onClick={handleSignIn} variant="contained" color="primary" style={{ marginRight: '10px' }}>Sign In</Button>
+                        <Button onClick={handleSignUp} variant="contained" color="secondary">Sign Up</Button>
+                    </Box>
+                </>
+            )}
+
             <Box marginY={2}>
                 <FormControlLabel
                     control={
@@ -168,8 +242,7 @@ function App() {
                 />
             </Box>
 
-            {/* API Selection */}
-            <FormControl fullWidth margin="normal" style={{ paddingTop: '10px' }}>
+            <FormControl fullWidth margin="normal">
                 <InputLabel>Select AI API</InputLabel>
                 <Select value={api} onChange={(e) => setApi(e.target.value)}>
                     <MenuItem value="openai">OpenAI</MenuItem>
@@ -178,8 +251,6 @@ function App() {
                 </Select>
             </FormControl>
 
-
-            {/* Toggle Button to Use API Keys from Frontend */}
             <Box marginY={2}>
                 <FormControlLabel
                     control={
@@ -193,7 +264,6 @@ function App() {
                 />
             </Box>
 
-            {/* Conditionally Show API Key Inputs */}
             {useFrontendApiKey && (
                 <>
                     {api === 'openai' && (
@@ -219,8 +289,7 @@ function App() {
                 </>
             )}
 
-            {/* File Upload */}
-            <Box 
+            <Box
                 marginY={2}
                 sx={{
                     border: '2px dashed grey',
@@ -229,25 +298,21 @@ function App() {
                     textAlign: 'center',
                     cursor: 'pointer',
                     backgroundColor: '#f5f5f5',
-                    '&:hover': {
-                        backgroundColor: '#e0e0e0',
-                    }
+                    '&:hover': { backgroundColor: '#e0e0e0' }
                 }}
-                onClick={() => document.getElementById('fileUpload').click()} // Trigger file input on box click
+                onClick={() => document.getElementById('fileUpload').click()}
             >
                 <Typography variant="h6">Click or Drag & Drop Files Here</Typography>
-                <input 
-                    type="file" 
-                    multiple 
-                    onChange={handleFileChange} 
-                    accept=".pdf,.docx,.xlsx" 
-                    style={{ display: 'none' }} // Hide default input appearance
-                    id="fileUpload"  // ID to trigger file input
+                <input
+                    type="file"
+                    multiple
+                    onChange={handleFileChange}
+                    accept=".pdf,.docx,.xlsx"
+                    style={{ display: 'none' }}
+                    id="fileUpload"
                 />
             </Box>
 
-
-            {/* Toggle Button to Show/Hide Document Content */}
             {documentContents.length > 0 && (
                 <Box marginY={2}>
                     <FormControlLabel
@@ -263,7 +328,6 @@ function App() {
                 </Box>
             )}
 
-            {/* Conditionally Render Document Content */}
             {showDocumentContent && documentContents.length > 0 && (
                 <Box marginY={2}>
                     <Typography variant="h6">Extracted Document Content:</Typography>
@@ -275,8 +339,7 @@ function App() {
                 </Box>
             )}
 
-            {/* Uploaded Document Dropdown */}
-            <FormControl fullWidth margin="normal" style={{ paddingTop: '20px' }}>
+            <FormControl fullWidth margin="normal">
                 <InputLabel>Select Uploaded Documents</InputLabel>
                 <Select multiple native onChange={handleDocumentSelection}>
                     {uploadedDocuments.map(doc => (
@@ -287,14 +350,12 @@ function App() {
                 </Select>
             </FormControl>
 
-            {/* Delete Documents Button */}
             <Box marginY={2}>
                 <Button variant="contained" color="secondary" onClick={handleDeleteDocuments}>
                     Delete Selected Documents
                 </Button>
             </Box>
 
-            {/* Prompt Input */}
             <TextField
                 label="Prompt"
                 fullWidth
@@ -306,21 +367,18 @@ function App() {
                 variant="outlined"
             />
 
-            {/* Send to AI Button */}
             <Box marginY={2}>
-                <Button type="submit" variant="contained" color="primary" onClick={handleSubmit} disabled={loading || (!documentContents.length && selectedDocumentIds.length === 0)} >
+                <Button type="submit" variant="contained" color="primary" onClick={handleSubmit} disabled={loading || (!documentContents.length && selectedDocumentIds.length === 0)}>
                     {loading ? <CircularProgress size={24} /> : 'Send to AI'}
                 </Button>
             </Box>
 
-            {/* Error Handling */}
             {error && (
                 <Box marginY={2}>
                     <Alert severity="error">{error}</Alert>
                 </Box>
             )}
 
-            {/* AI Response */}
             {response && (
                 <Box marginY={4}>
                     <Typography variant="h6">AI Response:</Typography>
