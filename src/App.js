@@ -25,7 +25,7 @@ function App() {
     const [user, setUser] = useState(null);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [apiUrl, setApiUrl] = useState(HOSTED_API_BASE_URL);
+    const [apiUrl, setApiUrl] = useState(LOCAL_API_BASE_URL);
     const [documentContents, setDocumentContents] = useState([]);
     const [prompt, setPrompt] = useState('');
     const [api, setApi] = useState('openai');
@@ -42,7 +42,7 @@ function App() {
     const fetchDocuments = useCallback(async () => {
         if (!user) return;
 
-        const token = await getIdToken(user); // Get the current user's token
+        const token = await getIdToken(user); 
     
         try {
             const result = await axios.get(`${apiUrl}/api/uploaded-documents`, {
@@ -123,6 +123,12 @@ function App() {
         if (!user) return;
     
         const uploadedFiles = e.target.files;
+        
+        if (uploadedFiles.length === 0) {
+            setError('No files selected.');
+            return;
+        }
+        
         const formData = new FormData();
         for (let i = 0; i < uploadedFiles.length; i++) {
             formData.append('files', uploadedFiles[i]);
@@ -132,8 +138,10 @@ function App() {
             setLoading(true);
             setError('');
     
-            const token = await getIdToken(user); // Get the current user's token
+            const token = await getIdToken(user);
+            console.log('Firebase token:', token);
     
+            // Send files to backend for processing
             const result = await axios.post(`${apiUrl}/api/read-document`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -141,47 +149,81 @@ function App() {
                 }
             });
     
+            console.log('API response:', result.data);
+    
             if (result.data.contents) {
                 setDocumentContents(result.data.contents);
-                fetchDocuments();
+                fetchDocuments(); 
             } else {
                 setDocumentContents(['No content extracted.']);
             }
         } catch (error) {
             setError('Error extracting document content. Please try again.');
-            console.error('Error extracting document content', error);
+            console.error('Error extracting document content:', error);
         } finally {
             setLoading(false);
         }
     };
-    
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
         setResponse('');
-
-        const requestData = {
-            prompt,
-            api,
-            selectedDocumentIds,
-            documentContents: documentContents.join('\n\n'),
-            useFrontendApiKey,
-            openAiApiKey,
-            claudeApiKey
-        };
-
+    
+        if (!user) {
+            setError('You must be signed in to make requests.');
+            setLoading(false);
+            return;
+        }
+    
+        if (!selectedDocumentIds || selectedDocumentIds.length === 0) {
+            setError('No documents selected.');
+            setLoading(false);
+            return;
+        }
+    
         try {
-            const result = await axios.post(`${apiUrl}/api/send-to-ai`, requestData);
-            setResponse(result.data.data.choices[0].text);
+            const token = await getIdToken(user); 
+            
+            const requestData = {
+                api,
+                prompt,
+                selectedDocumentIds, 
+                useFrontendApiKey,
+                openAiApiKey,
+                claudeApiKey
+            };
+    
+            const result = await axios.post(
+                `${apiUrl}/api/send-to-ai`,
+                requestData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+    
+            console.log('API response:', result); 
+            setResponse(result.data.message);
         } catch (error) {
-            setError('Error processing AI request.');
+            console.error('Error details:', error);
+            if (error.response) {
+                const errorMessage = error.response.data?.error?.message || 'Unexpected response error';
+                setError(`AI request failed with status ${error.response.status}: ${errorMessage}`);
+            } else if (error.request) {
+                setError('No response received from AI service.');
+            } else {
+                setError(`Error processing AI request: ${error.message}`);
+            }
         } finally {
             setLoading(false);
         }
     };
-
+    
+    
     const handleToggleChange = () => {
         setShowDocumentContent(prev => !prev);
     };
