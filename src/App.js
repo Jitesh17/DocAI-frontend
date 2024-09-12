@@ -25,7 +25,7 @@ function App() {
     const [user, setUser] = useState(null);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [apiUrl, setApiUrl] = useState(LOCAL_API_BASE_URL);
+    const [apiUrl, setApiUrl] = useState(HOSTED_API_BASE_URL);
     const [documentContents, setDocumentContents] = useState([]);
     const [prompt, setPrompt] = useState('');
     const [api, setApi] = useState('openai');
