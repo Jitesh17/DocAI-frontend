@@ -1,70 +1,75 @@
-# Getting Started with Create React App
+# DocAI Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This is the frontend for the DocAI application, which allows users to upload documents, process them using AI, and manage their data securely. The frontend is built using React and Material-UI.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- User Authentication (Sign Up, Sign In) using Firebase.
+- Upload documents in PDF, DOCX, and XLSX formats.
+- Extract and display document content.
+- Send documents and prompts to integrated AI services (OpenAI, Claude AI).
+- Manage uploaded documents (view, delete).
+- Secure data access with Firebase Authentication.
 
-### `npm start`
+## Getting Started
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Prerequisites
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- Node.js and npm installed on your local machine.
+- A Firebase project with Authentication enabled.
+- OpenAI and Claude AI API keys if you plan to use these services.
 
-### `npm test`
+### Installation
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. Clone the repository:
+    ```bash
+    git clone https://github.com/Jitesh17/DocAI-frontend.git
+    cd DocAI-frontend
+    ```
 
-### `npm run build`
+2. Install the dependencies:
+    ```bash
+    npm install
+    ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+3. Create a `.env` file in the root directory with your environment variables:
+    ```bash
+    REACT_APP_API_BASE_URL=http://localhost:5000 # or your hosted backend URL
+    REACT_APP_FIREBASE_API_KEY=your-firebase-api-key
+    REACT_APP_FIREBASE_AUTH_DOMAIN=your-firebase-auth-domain
+    REACT_APP_FIREBASE_PROJECT_ID=your-firebase-project-id
+    REACT_APP_FIREBASE_STORAGE_BUCKET=your-firebase-storage-bucket
+    REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your-firebase-messaging-sender-id
+    REACT_APP_FIREBASE_APP_ID=your-firebase-app-id
+    ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+4. Start the development server:
+    ```bash
+    npm start
+    ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Usage
 
-### `npm run eject`
+- Sign up or sign in using your email and password.
+- Upload documents and manage them securely.
+- Send prompts and document contents to the AI services for processing.
+- View AI-generated responses.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Deployment
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+This project is set up to deploy automatically on Netlify. To deploy manually:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+1. Push your changes to GitHub.
+2. Connect the GitHub repository to Netlify and trigger a deploy.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## License
 
-## Learn More
+This project is licensed under the [Creative Commons Non-Commercial License](https://creativecommons.org/licenses/by-nc/4.0/). You are free to use, modify, and distribute the code for non-commercial purposes, provided that you give appropriate credit.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Acknowledgements
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- React
+- Material-UI
+- Firebase Authentication
+- OpenAI and Claude AI APIs
 
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)

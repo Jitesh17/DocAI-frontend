@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, getIdToken } from 'firebase/auth'; // Import signUp method
 import { auth } from './firebase'; 
+import ReactMarkdown from 'react-markdown';
 import {
     Button,
     TextField,
@@ -38,6 +39,7 @@ function App() {
     const [useFrontendApiKey, setUseFrontendApiKey] = useState(false);
     const [openAiApiKey, setOpenAiApiKey] = useState('');
     const [claudeApiKey, setClaudeApiKey] = useState('');
+    const [maxTokens, setMaxTokens] = useState(100); 
 
     const fetchDocuments = useCallback(async () => {
         if (!user) return;
@@ -50,19 +52,28 @@ function App() {
                     Authorization: `Bearer ${token}`
                 }
             });
+            
             setUploadedDocuments(result.data.documents);
         } catch (error) {
             console.error('Error fetching documents', error);
+            setError('Failed to fetch documents. Please try again later.');
+
         }
     }, [apiUrl, user]);
     
+    
     useEffect(() => {
-        fetchDocuments();
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
         });
         return () => unsubscribe();
-    }, [fetchDocuments]);
+    }, []);
+
+    useEffect(() => {
+        if (user) {
+            fetchDocuments();
+        }
+    }, [fetchDocuments, user]);
 
     const handleDocumentSelection = (e) => {
         setSelectedDocumentIds([...e.target.selectedOptions].map(option => option.value));
@@ -89,6 +100,7 @@ function App() {
         try {
             await signOut(auth);
             setUser(null);
+            setUploadedDocuments([]);
         } catch (error) {
             setError('Sign out failed.');
         }
@@ -192,7 +204,8 @@ function App() {
                 selectedDocumentIds, 
                 useFrontendApiKey,
                 openAiApiKey,
-                claudeApiKey
+                claudeApiKey,
+                maxTokens,
             };
     
             const result = await axios.post(
@@ -217,6 +230,8 @@ function App() {
                 setError('No response received from AI service.');
             } else {
                 setError(`Error processing AI request: ${error.message}`);
+                setError('AI request failed. Please try again.');
+
             }
         } finally {
             setLoading(false);
@@ -408,7 +423,15 @@ function App() {
                 margin="normal"
                 variant="outlined"
             />
-
+            <TextField
+                label="Max Tokens"
+                type="number"
+                value={maxTokens}
+                onChange={(e) => setMaxTokens(Number(e.target.value))}
+                margin="normal"
+                variant="outlined"
+                helperText="Use around 100" 
+            />
             <Box marginY={2}>
                 <Button type="submit" variant="contained" color="primary" onClick={handleSubmit} disabled={loading || (!documentContents.length && selectedDocumentIds.length === 0)}>
                     {loading ? <CircularProgress size={24} /> : 'Send to AI'}
@@ -420,11 +443,12 @@ function App() {
                     <Alert severity="error">{error}</Alert>
                 </Box>
             )}
-
             {response && (
                 <Box marginY={4}>
                     <Typography variant="h6">AI Response:</Typography>
-                    <Typography>{response}</Typography>
+                    <Box padding={2} border={1} borderColor="grey.300" borderRadius={4} bgcolor="grey.100">
+                        <ReactMarkdown>{response}</ReactMarkdown>
+                    </Box>
                 </Box>
             )}
         </Container>
