@@ -23,13 +23,13 @@ import {
   Alert,
   Switch,
   FormControlLabel,
-} from "@mui/material";
-import {
   AppBar,
   Toolbar,
   IconButton,
   Drawer,
   useMediaQuery,
+  Checkbox,
+  ListItemText,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 
@@ -89,9 +89,12 @@ function App() {
     }
   }, [fetchDocuments, user]);
 
-  const handleDocumentSelection = (e) => {
+  const handleDocumentSelection = (event) => {
+    const {
+      target: { value },
+    } = event;
     setSelectedDocumentIds(
-      [...e.target.selectedOptions].map((option) => option.value)
+      typeof value === "string" ? value.split(",") : value
     );
   };
 
@@ -129,7 +132,7 @@ function App() {
     }
 
     try {
-      const token = await getIdToken(user); 
+      const token = await getIdToken(user);
 
       const result = await axios.delete(`${apiUrl}/api/delete-documents`, {
         data: { documentIds: selectedDocumentIds },
@@ -541,13 +544,44 @@ function App() {
             </Box>
           )}
 
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Select Uploaded Documents</InputLabel>
-            <Select multiple native onChange={handleDocumentSelection}>
+          <FormControl fullWidth margin="normal" variant="outlined">
+            <InputLabel id="uploaded-documents-label">
+              Select Uploaded Documents
+            </InputLabel>
+            <Select
+              labelId="uploaded-documents-label"
+              id="uploaded-documents-select"
+              multiple
+              value={selectedDocumentIds}
+              onChange={handleDocumentSelection}
+              label="Select Uploaded Documents"
+              renderValue={(selected) => {
+                if (selected.length === 0) {
+                  return "Select Uploaded Documents";
+                } else {
+                  return `${selected.length} documents selected`;
+                }
+              }}
+              MenuProps={{
+                getContentAnchorEl: null,
+                anchorOrigin: {
+                  vertical: "bottom",
+                  horizontal: "left",
+                },
+              }}
+              sx={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               {uploadedDocuments.map((doc) => (
-                <option key={doc._id} value={doc._id}>
-                  {doc.documentName}
-                </option>
+                <MenuItem key={doc._id} value={doc._id}>
+                  <Checkbox
+                    checked={selectedDocumentIds.indexOf(doc._id) > -1}
+                  />
+                  <ListItemText primary={doc.documentName} />
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
