@@ -267,191 +267,268 @@ function App() {
     }
     
     return (
-        <Container maxWidth="md">
-            <Typography variant="h4" gutterBottom>AI Document Processor</Typography>
+<Container maxWidth="lg">
+  <Box sx={{ display: 'flex' }}>
+    {/* Sidebar */}
+    <Box
+      sx={{
+        width: 240,
+        flexShrink: 0,
+        backgroundColor: '#f7f7f7',
+        p: 2,
+        borderRight: '1px solid #e0e0e0',
+        minHeight: '100vh',
+      }}
+    >
+      {user && (
+        <Box mb={4}>
+          <Typography variant="subtitle1">Signed in as:</Typography>
+          <Typography variant="h6" gutterBottom>{user.email}</Typography>
+          <Button onClick={handleSignOut} variant="contained" color="secondary" fullWidth>
+            Sign Out
+          </Button>
+        </Box>
+      )}
 
-            {user ? (
-                <>
-                    <Typography>Signed in as: {user.email}</Typography>
-                    <Button onClick={handleSignOut} variant="contained" color="secondary">Sign Out</Button>
-                </>
-            ) : (
-                <>
-                    <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
-                    <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth />
-                    <Box marginY={2}>
-                        <Button onClick={handleSignIn} variant="contained" color="primary" style={{ marginRight: '10px' }}>Sign In</Button>
-                        <Button onClick={handleSignUp} variant="contained" color="secondary">Sign Up</Button>
-                    </Box>
-                </>
-            )}
+      <FormControlLabel
+        control={
+          <Switch
+            checked={apiUrl === HOSTED_API_BASE_URL}
+            onChange={handleApiUrlToggle}
+            color="primary"
+          />
+        }
+        label={apiUrl === HOSTED_API_BASE_URL ? "Using Hosted Backend" : "Using Local Backend"}
+      />
 
-            <Box marginY={2}>
-                <FormControlLabel
-                    control={
-                        <Switch
-                            checked={apiUrl === HOSTED_API_BASE_URL}
-                            onChange={handleApiUrlToggle}
-                            color="primary"
-                        />
-                    }
-                    label={apiUrl === HOSTED_API_BASE_URL ? "Using Hosted Backend" : "Using Local Backend"}
-                />
-            </Box>
+      <FormControl fullWidth margin="normal">
+        <InputLabel>Select AI API</InputLabel>
+        <Select value={api} onChange={(e) => setApi(e.target.value)}>
+          <MenuItem value="openai">OpenAI</MenuItem>
+          <MenuItem value="claude">Claude AI</MenuItem>
+          <MenuItem value="custom">Custom Model</MenuItem>
+        </Select>
+      </FormControl>
 
-            <FormControl fullWidth margin="normal">
-                <InputLabel>Select AI API</InputLabel>
-                <Select value={api} onChange={(e) => setApi(e.target.value)}>
-                    <MenuItem value="openai">OpenAI</MenuItem>
-                    <MenuItem value="claude">Claude AI</MenuItem>
-                    <MenuItem value="custom">Custom Model</MenuItem>
-                </Select>
-            </FormControl>
+      <FormControlLabel
+        control={
+          <Switch
+            checked={useFrontendApiKey}
+            onChange={handleApiKeyToggle}
+            color="primary"
+          />
+        }
+        label="Use my API Key"
+      />
 
-            <Box marginY={2}>
-                <FormControlLabel
-                    control={
-                        <Switch
-                            checked={useFrontendApiKey}
-                            onChange={handleApiKeyToggle}
-                            color="primary"
-                        />
-                    }
-                    label="Use my API Key"
-                />
-            </Box>
+      {useFrontendApiKey && (
+        <Box mt={2}>
+          {api === 'openai' && (
+            <TextField
+              label="OpenAI API Key"
+              fullWidth
+              value={openAiApiKey}
+              onChange={(e) => setOpenAiApiKey(e.target.value)}
+              margin="normal"
+              variant="outlined"
+            />
+          )}
+          {api === 'claude' && (
+            <TextField
+              label="Claude API Key"
+              fullWidth
+              value={claudeApiKey}
+              onChange={(e) => setClaudeApiKey(e.target.value)}
+              margin="normal"
+              variant="outlined"
+            />
+          )}
+        </Box>
+      )}
+    </Box>
 
-            {useFrontendApiKey && (
-                <>
-                    {api === 'openai' && (
-                        <TextField
-                            label="OpenAI API Key"
-                            fullWidth
-                            value={openAiApiKey}
-                            onChange={(e) => setOpenAiApiKey(e.target.value)}
-                            margin="normal"
-                            variant="outlined"
-                        />
-                    )}
-                    {api === 'claude' && (
-                        <TextField
-                            label="Claude API Key"
-                            fullWidth
-                            value={claudeApiKey}
-                            onChange={(e) => setClaudeApiKey(e.target.value)}
-                            margin="normal"
-                            variant="outlined"
-                        />
-                    )}
-                </>
-            )}
+    {/* Main Content */}
+    <Box sx={{ flexGrow: 1, p: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        AI Document Processor
+      </Typography>
 
-            <Box
-                marginY={2}
-                sx={{
-                    border: '2px dashed grey',
-                    borderRadius: '10px',
-                    padding: '20px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    backgroundColor: '#f5f5f5',
-                    '&:hover': { backgroundColor: '#e0e0e0' }
-                }}
-                onClick={() => document.getElementById('fileUpload').click()}
+      {!user && (
+        <Box mb={4}>
+          <TextField
+            label="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            fullWidth
+            margin="normal"
+            variant="outlined"
+          />
+          <TextField
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            fullWidth
+            margin="normal"
+            variant="outlined"
+          />
+          <Box mt={2}>
+            <Button
+              onClick={handleSignIn}
+              variant="contained"
+              color="primary"
+              style={{ marginRight: '10px' }}
             >
-                <Typography variant="h6">Click or Drag & Drop Files Here</Typography>
-                <input
-                    type="file"
-                    multiple
-                    onChange={handleFileChange}
-                    accept=".pdf,.docx,.xlsx"
-                    style={{ display: 'none' }}
-                    id="fileUpload"
-                />
+              Sign In
+            </Button>
+            <Button onClick={handleSignUp} variant="outlined" color="secondary">
+              Sign Up
+            </Button>
+          </Box>
+        </Box>
+      )}
+
+      <Box
+        marginY={2}
+        sx={{
+          border: '2px dashed grey',
+          borderRadius: '10px',
+          padding: '40px',
+          textAlign: 'center',
+          cursor: 'pointer',
+          backgroundColor: '#fafafa',
+          '&:hover': { backgroundColor: '#f0f0f0' },
+        }}
+        onClick={() => document.getElementById('fileUpload').click()}
+      >
+        <Typography variant="h6">Click or Drag & Drop Files Here</Typography>
+        <Typography variant="body2" color="textSecondary">
+          Supported formats: PDF, DOCX, XLSX
+        </Typography>
+        <input
+          type="file"
+          multiple
+          onChange={handleFileChange}
+          accept=".pdf,.docx,.xlsx"
+          style={{ display: 'none' }}
+          id="fileUpload"
+        />
+      </Box>
+
+      {documentContents.length > 0 && (
+        <Box marginY={2}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showDocumentContent}
+                onChange={handleToggleChange}
+                color="primary"
+              />
+            }
+            label="Show Document Content"
+          />
+        </Box>
+      )}
+
+      {showDocumentContent && documentContents.length > 0 && (
+        <Box marginY={2}>
+          <Typography variant="h6">Extracted Document Content:</Typography>
+          {documentContents.map((content, idx) => (
+            <Box
+              key={idx}
+              mt={2}
+              p={2}
+              border={1}
+              borderColor="grey.300"
+              borderRadius={4}
+              bgcolor="grey.50"
+            >
+              <Typography variant="body2">{content}</Typography>
             </Box>
+          ))}
+        </Box>
+      )}
 
-            {documentContents.length > 0 && (
-                <Box marginY={2}>
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={showDocumentContent}
-                                onChange={handleToggleChange}
-                                color="primary"
-                            />
-                        }
-                        label="Show Document Content"
-                    />
-                </Box>
-            )}
+      <FormControl fullWidth margin="normal">
+        <InputLabel>Select Uploaded Documents</InputLabel>
+        <Select
+          multiple
+          native
+          onChange={handleDocumentSelection}
+        >
+          {uploadedDocuments.map((doc) => (
+            <option key={doc._id} value={doc._id}>
+              {doc.documentName}
+            </option>
+          ))}
+        </Select>
+      </FormControl>
 
-            {showDocumentContent && documentContents.length > 0 && (
-                <Box marginY={2}>
-                    <Typography variant="h6">Extracted Document Content:</Typography>
-                    {documentContents.map((content, idx) => (
-                        <Box key={idx} padding={2} border={1} borderColor="grey.300" borderRadius={4} bgcolor="grey.100">
-                            <Typography variant="body1">{content}</Typography>
-                        </Box>
-                    ))}
-                </Box>
-            )}
+      <Box mt={2} mb={4}>
+        <Button variant="outlined" color="secondary" onClick={handleDeleteDocuments}>
+          Delete Selected Documents
+        </Button>
+      </Box>
 
-            <FormControl fullWidth margin="normal">
-                <InputLabel>Select Uploaded Documents</InputLabel>
-                <Select multiple native onChange={handleDocumentSelection}>
-                    {uploadedDocuments.map(doc => (
-                        <option key={doc._id} value={doc._id}>
-                            {doc.documentName}
-                        </option>
-                    ))}
-                </Select>
-            </FormControl>
+      <TextField
+        label="Prompt"
+        fullWidth
+        multiline
+        rows={4}
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        margin="normal"
+        variant="outlined"
+      />
+      <TextField
+        label="Max Tokens"
+        type="number"
+        value={maxTokens}
+        onChange={(e) => setMaxTokens(Number(e.target.value))}
+        margin="normal"
+        variant="outlined"
+        helperText="Recommended: 100"
+      />
 
-            <Box marginY={2}>
-                <Button variant="contained" color="secondary" onClick={handleDeleteDocuments}>
-                    Delete Selected Documents
-                </Button>
-            </Box>
+      <Box mt={4}>
+        <Button
+          type="submit"
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+          disabled={loading || (!documentContents.length && selectedDocumentIds.length === 0)}
+          fullWidth
+          size="large"
+        >
+          {loading ? <CircularProgress size={24} /> : 'Send to AI'}
+        </Button>
+      </Box>
 
-            <TextField
-                label="Prompt"
-                fullWidth
-                multiline
-                rows={4}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                margin="normal"
-                variant="outlined"
-            />
-            <TextField
-                label="Max Tokens"
-                type="number"
-                value={maxTokens}
-                onChange={(e) => setMaxTokens(Number(e.target.value))}
-                margin="normal"
-                variant="outlined"
-                helperText="Use around 100" 
-            />
-            <Box marginY={2}>
-                <Button type="submit" variant="contained" color="primary" onClick={handleSubmit} disabled={loading || (!documentContents.length && selectedDocumentIds.length === 0)}>
-                    {loading ? <CircularProgress size={24} /> : 'Send to AI'}
-                </Button>
-            </Box>
+      {error && (
+        <Box marginY={2}>
+          <Alert severity="error">{error}</Alert>
+        </Box>
+      )}
 
-            {error && (
-                <Box marginY={2}>
-                    <Alert severity="error">{error}</Alert>
-                </Box>
-            )}
-            {response && (
-                <Box marginY={4}>
-                    <Typography variant="h6">AI Response:</Typography>
-                    <Box padding={2} border={1} borderColor="grey.300" borderRadius={4} bgcolor="grey.100">
-                        <ReactMarkdown>{response}</ReactMarkdown>
-                    </Box>
-                </Box>
-            )}
-        </Container>
+      {response && (
+        <Box marginY={4}>
+          <Typography variant="h6">AI Response:</Typography>
+          <Box
+            mt={2}
+            p={3}
+            border={1}
+            borderColor="grey.300"
+            borderRadius={4}
+            bgcolor="grey.100"
+          >
+            <ReactMarkdown>{response}</ReactMarkdown>
+          </Box>
+        </Box>
+      )}
+    </Box>
+  </Box>
+</Container>
+
     );
 }
 
