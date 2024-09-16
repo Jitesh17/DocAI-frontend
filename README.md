@@ -1,5 +1,20 @@
 # DocAI Frontend
 
+<div>
+    <!-- License Badge -->
+    <img src="https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg" alt="License: CC BY-NC 4.0"/>
+    <!-- Frontend Tech Badge -->
+    <img src="https://img.shields.io/badge/frontend-React-blue" alt="React"/>
+    <!-- Netlify Build Status Badge -->
+    <img src="https://api.netlify.com/api/v1/badges/1647cc7a-701f-4e36-abf4-3a076ed8d2d3/deploy-status" alt="Netlify Status"/>
+    <!-- PRs Welcome Badge -->
+    <img src="https://img.shields.io/github/last-commit/Jitesh17/DocAI-frontend" alt="Last Commit"/>
+    <!-- GitHub Issues Badge -->
+    <img src="https://img.shields.io/github/issues/Jitesh17/DocAI-frontend" alt="GitHub Issues"/>
+    <!-- PRs Welcome Badge -->
+    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"/>
+</div>
+
 This is the frontend for the DocAI application, which allows users to upload documents, process them using AI, and manage their data securely. The frontend is built using React and Material-UI.
 
 ## Features
@@ -64,7 +79,9 @@ This project is set up to deploy automatically on Netlify. To deploy manually:
 
 ## License
 
-This project is licensed under the [Creative Commons Non-Commercial License](https://creativecommons.org/licenses/by-nc/4.0/). You are free to use, modify, and distribute the code for non-commercial purposes, provided that you give appropriate credit.
+This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License. You are free to share and adapt the material as long as you give appropriate credit and do not use the material for commercial purposes.
+
+For more details, see the [LICENSE](./LICENSE) file or visit [Creative Commons License](https://creativecommons.org/licenses/by-nc/4.0/).
 
 ## Acknowledgements
 
